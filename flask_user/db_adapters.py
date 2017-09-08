@@ -114,3 +114,114 @@ class SQLAlchemyAdapter(DBAdapter):
 
     def commit(self):
         self.db.session.commit()
+
+import pdb
+from flywheel import Model, Field, Engine
+
+class DynamoDBAdapter(DBAdapter):
+    """ This object is used to shield Flask-User from Dynamo specific functions."""
+    def __init__(self, db, UserClass, UserProfileClass=None, UserAuthClass=None, UserEmailClass=None, UserInvitationClass=None):
+        self.db = db
+        self.UserClass = UserClass
+        self.UserProfileClass = UserProfileClass
+        self.UserAuthClass = UserAuthClass
+        self.UserEmailClass = UserEmailClass
+        self.UserInvitationClass = UserInvitationClass
+        #super(SQLAlchemyAdapter, self).__init__(db, UserClass, UserAuthClass, UserEmailClass, UserProfileClass, UserInvitationClass)
+
+    def get_object(self, ObjectClass, id):
+        """ Retrieve one object specified by the primary key 'pk' """
+        print('dynamo.get(%s, %s)' % (ObjectClass, str(id)))
+        pdb.set_trace()
+        out = self.db.engine.get(id)
+        return out
+        return ObjectClass.query.get(id)
+
+    def find_all_objects(self, ObjectClass, **kwargs):
+        """ Retrieve all objects matching the case sensitive filters in 'kwargs'. """
+
+        print('dynamo.find_first_object(%s, %s)' % (ObjectClass, str(kwargs)))
+
+        query = self.db.engine.query(ObjectClass)
+        for field_name, field_value in kwargs.items():
+
+            # Make sure that ObjectClass has a 'field_name' property
+            field = getattr(ObjectClass, field_name, None)
+            if field is None:
+                raise KeyError("DynamoDBAdapter.find_first_object(): Class '%s' has no field '%s'." % (ObjectClass, field_name))
+
+            # Add a case sensitive filter to the query
+            query = query.filter(field == field_value)
+
+        # Execute query
+        return query.all(desc=True)
+
+    def find_first_object(self, ObjectClass, **kwargs):
+        """ Retrieve the first object matching the case sensitive filters in 'kwargs'. """
+
+        print('dynamo.find_first_object(%s, %s)' % (ObjectClass, str(kwargs)))
+
+        query = self.db.engine.query(ObjectClass)
+        for field_name, field_value in kwargs.items():
+
+            # Make sure that ObjectClass has a 'field_name' property
+            field = getattr(ObjectClass, field_name, None)
+            if field is None:
+                raise KeyError("DynamoDBAdapter.find_first_object(): Class '%s' has no field '%s'." % (ObjectClass, field_name))
+
+            # Add a case sensitive filter to the query
+            query = query.filter(field == field_value)
+
+        # Execute query
+        return query.first(desc=True)
+
+    def ifind_first_object(self, ObjectClass, **kwargs):
+        """ Retrieve the first object matching the case insensitive filters in 'kwargs'. """
+
+        # Convert each name/value pair in 'kwargs' into a filter
+        print("dynamo.ifind_first_object(%s, %s). I don't actually support case insensitive yet" % (ObjectClass, str(kwargs)))
+
+        query = self.db.engine.query(ObjectClass)
+        for field_name, field_value in kwargs.items():
+
+            # Make sure that ObjectClass has a 'field_name' property
+            field = getattr(ObjectClass, field_name, None)
+            if field is None:
+                raise KeyError("DynamoDBAdapter.ifind_first_object(): Class '%s' has no field '%s'." % (ObjectClass, field_name))
+
+            # Add a case sensitive filter to the query
+            query = query.filter(field == field_value)
+
+        # Execute query
+        return query.first(desc=True)
+
+    def add_object(self, ObjectClass, **kwargs):
+        """ Add an object of class 'ObjectClass' with fields and values specified in '**kwargs'. """
+        print('dynamo.add_object(%s, %s)' % (ObjectClass, str(kwargs)))
+        object=ObjectClass(**kwargs)
+        self.db.engine.save(object)
+        return object
+
+    def update_object(self, object, **kwargs):
+        """ Update object 'object' with the fields and values specified in '**kwargs'. """
+        pdb.set_trace()
+        for key,value in kwargs.items():
+            if hasattr(object, key):
+                setattr(object, key, value)
+            else:
+                raise KeyError("Object '%s' has no field '%s'." % (type(object), key))
+
+    def delete_object(self, object):
+        """ Delete object 'object'. """
+        #pdb.set_trace()
+        self.db.engine.delete_key(object)#, userid='abc123', id='1')
+        print('dynamo.delete_object(%s)' % object)
+        #self.db.session.delete(object)
+
+    def commit(self):
+        #pdb.set_trace()
+        print('dynamo.commit()')
+        self.db.engine.sync()
+        #self.db.session.commit()
+        
+        

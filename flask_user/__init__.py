@@ -9,6 +9,7 @@ from flask import Blueprint, current_app, url_for, render_template
 from flask_login import LoginManager, UserMixin as LoginUserMixin
 from flask_user.db_adapters import DBAdapter
 from .db_adapters import SQLAlchemyAdapter
+from .db_adapters import DynamoDBAdapter
 from . import emails
 from . import forms
 from . import passwords
